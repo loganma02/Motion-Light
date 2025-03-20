@@ -5,6 +5,11 @@ import mediapipe as mp
 import numpy as np
 from openCV_methods import *
 
+from pykinect2024 import PyKinectRuntime
+from pykinect2024 import *
+
+kinect = PyKinectRuntime.PyKinectRuntime(PyKinect2024.FrameSourceTypes_Color)
+
 #TODO: Figure out how I can move this to another file
 def is_pinching(landmarks, frame_width, frame_height, threshold=40):
     """ Detects if the hand is pinching by checking the distance between thumb and index finger tips """
@@ -45,16 +50,22 @@ currPinch = 0
 frameCount = 0
 LEDCords = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
 awayCords = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
+print(f'Thread num {cv2.getThreadNum()}')
+print(f'Num Threads {cv2.getNumThreads()}')
+print(f'Build Information {cv2.getBuildInformation()}')
+print("CUDA enabled devices:", cv2.cuda.getCudaEnabledDeviceCount())
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
-    # Flip the frame horizontally for a mirrored view
-    frame = cv2.flip(frame, 1)
+while True:
+    frame = kinect.get_last_color_frame()
+    frame = frame.reshape((1080, 1920, 4))
+    #frame = cv2.flip(frame, 1)
+    #gframe = cv2.UMat(frame)
+    #gframe = cv2.flip(gframe, 1)
+    #frame = gframe.get()
+
 
     # Convert BGR image to RGB for MediaPipe
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
     results = hands.process(rgb_frame)
 
     pinch = False
@@ -76,7 +87,7 @@ while cap.isOpened():
             cv2.circle(frame, (cx, cy), 10, (0, 0, 255), cv2.FILLED)
 
             # Optionally draw all landmarks
-            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            #mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
     # TODO: Make this work to combine the pinch methods, those are basically the same anyway
 
@@ -107,7 +118,7 @@ while cap.isOpened():
     if (stage == 'pinchStage'):
         #send_wled_udp(bytearray([255,255,255]), '10.0.0.34', 8050, 'DRGB')
         index = (currPinch // NUM_PINCHES - 1) ** (LED_COUNT - 1)
-        print(index)
+        #print(index)
         # WLED light up num of leds/ currPinch
         cv2.putText(frame, f"Please pinch and hold directly above the lit LED: {currPinch+1} of {NUM_PINCHES}", (20, 400), cv2.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(frame, f"The current index finger coordinate is {cx}, {cy}", (20, 460), cv2.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255), 1, cv2.LINE_AA)
