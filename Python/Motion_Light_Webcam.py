@@ -1,41 +1,30 @@
 import os
-
-from numpy.f2py.auxfuncs import throw_error
-
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 import mediapipe as mp
 import numpy as np
 from openCV_methods import *
 
-from pykinect2024 import PyKinectRuntime
-from pykinect2024 import PyKinect2024
-
-FRAME_WIDTH = 1920
-FRAME_HEIGHT = 1080
+FRAME_WIDTH = 680 # These may need to be modified depending on your webcam resolution
+FRAME_HEIGHT = 480
 NUM_PINCHES = 2
 
-WLED_IP = '10.0.0.128'
+WLED_IP = '10.0.0.128' # CHANGE THIS TO YOUR WLED LOCAL IP
 WLED_PORT = 21324
 LED_COUNT = get_led_count(ip=WLED_IP)
-FADE_WIDTH = 1
-FADE_COLOR = [255,20,255]
-VIDEO_MODE = 'infrared'
 
-if (VIDEO_MODE == 'color'):
-    kinect = PyKinectRuntime.PyKinectRuntime(PyKinect2024.FrameSourceTypes_Color)
-elif (VIDEO_MODE == 'infrared'):
-    kinect = PyKinectRuntime.PyKinectRuntime(PyKinect2024.FrameSourceTypes_Infrared)
-    FRAME_WIDTH = 512 #Kinect v2 Infrared camera resoultion
-    FRAME_HEIGHT = 424
-else:
-    raise ValueError('Check video mode, should be color or infrared.')
+# These are the variables that are most likely to be tweaked
+FADE_WIDTH = 1 # Change this value to change how wide the fade is along the strips
+GAMMA = 0.2  # Change this value to change how intense the fade is when a hand approaches
+FADE_COLOR = [255,20,255] # This is the color of the fade
+WHICH_WEBCAM = 0 # 0 works for most built in webcam
+
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(WHICH_WEBCAM)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
 cap.set(cv2.CAP_PROP_FPS, 30)
@@ -50,28 +39,20 @@ quad_pts = np.array([LEDCords[0], LEDCords[1], awayCords[0], awayCords[1]], dtyp
 rect_pts = np.array([[0, 1], [1, 1], [0, 0], [1, 0]], dtype=np.float32)
 perspective_matrix = cv2.getPerspectiveTransform(quad_pts, rect_pts)
 
-while True:
-    # frame = kinect.get_last_color_frame()
-    # frame = frame.reshape((1080, 1920, 4))
-    if (VIDEO_MODE == 'infrared'):
-        frame = kinect.get_last_infrared_frame()
-        frame = frame.reshape((FRAME_HEIGHT, FRAME_WIDTH))
-        frame = (frame / 256).astype(np.uint8)
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-    elif (VIDEO_MODE == 'color'):
-        frame = kinect.get_last_color_frame()
-        print("Frame type:", type(frame))
-        print("Frame size:", frame.size if frame is not None else "None")
-        frame = frame.reshape((1080, 1920, 4))
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    # Flip the frame horizontally for a mirrored view
+    frame = cv2.flip(frame, 1)
 
     # Convert BGR image to RGB for MediaPipe
-    #rgb_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
-#rgb_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(rgb_frame)
 
     pinch = False
-    cx = 0  # These values are the position of the middle finger in the frame
+    cx = 0 #These values are the position of the pointer finger in the frame
     cy = 0
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
@@ -79,15 +60,12 @@ while True:
             pinch = is_pinching(hand_landmarks, mp_hands, FRAME_WIDTH, FRAME_HEIGHT, threshold=0.28)
 
             # Get landmark for the tip of the middle finger
-            middle_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP] #INDEX_FINGER_TIP
+            index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]  # INDEX_FINGER_TIP
 
-            cx, cy = int(middle_finger_tip.x * FRAME_WIDTH), int(middle_finger_tip.y * FRAME_HEIGHT)
+            cx, cy = int(index_finger_tip.x * FRAME_WIDTH), int(index_finger_tip.y * FRAME_HEIGHT)
 
-            # Draw a circle over the middle finger tip
+            # Draw a circle over the index finger tip
             cv2.circle(frame, (cx, cy), 10, (0, 0, 255), cv2.FILLED)
-
-            # Optionally draw all landmarks
-            #mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
     index = int((currPinch / (NUM_PINCHES - 1)) * (LED_COUNT - 1))
 
@@ -155,8 +133,8 @@ while True:
         # Map v to brightness
         intensity = v  # 0 (bottom) to 1 (top)
 
-        gamma = 0.2  # Typical gamma correction factor
-        intensity = v ** (1 / gamma)  # Adjust brightness perception
+        GAMMA = 0.2  # Typical gamma correction factor
+        intensity = v ** (1 / GAMMA)  # Adjust brightness perception
 
         led_data = bytearray(LED_COUNT * 3)  # Initialize all LEDs to off
 
@@ -178,7 +156,7 @@ while True:
         send_wled_udp(led_data, WLED_IP, WLED_PORT, 'DRGB')
 
     # Display the output
-    cv2.imshow('Hand Tracking', frame)
+    cv2.imshow('Motion Light', frame)
 
     # Break loop on 'q' key press
     if cv2.waitKey(1) & 0xFF == ord('q'):
