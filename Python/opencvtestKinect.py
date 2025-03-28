@@ -6,70 +6,50 @@ import numpy as np
 from openCV_methods import *
 
 from pykinect2024 import PyKinectRuntime
-from pykinect2024 import *
+#from pykinect2024 import *
 
 kinect = PyKinectRuntime.PyKinectRuntime(PyKinect2024.FrameSourceTypes_Color)
-
-#TODO: Figure out how I can move this to another file
-def is_pinching(landmarks, frame_width, frame_height, threshold=40):
-    """ Detects if the hand is pinching by checking the distance between thumb and index finger tips """
-    thumb_tip = landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
-    index_tip = landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-
-    # Convert to pixel coordinates
-    thumb_x, thumb_y = int(thumb_tip.x * frame_width), int(thumb_tip.y * frame_height)
-    index_x, index_y = int(index_tip.x * frame_width), int(index_tip.y * frame_height)
-
-    # Calculate Euclidean distance
-    distance = np.sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
-
-    print(f"Pinch distance is: {distance}")
-    return distance < threshold  # Return True if fingers are close enough
 
 FRAME_WIDTH = 680
 FRAME_HEIGHT = 480
 NUM_PINCHES = 2
 
-WLED_IP = '10.0.0.34'
-WLED_PORT = 8080
-#LED_COUNT = get_led_count(ip=WLED_IP)
-LED_COUNT = 20
+WLED_IP = '10.0.0.128'
+WLED_PORT = 21324
+LED_COUNT = get_led_count(ip=WLED_IP)
+FADE_WIDTH = 3
+FADE_COLOR = [255,20,255]
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
 
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-cap.set(cv2.CAP_PROP_FPS, 60)
+cap.set(cv2.CAP_PROP_FPS, 30)
 
 stage = 'pinchStage'
 currPinch = 0
 frameCount = 0
-LEDCords = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
-awayCords = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
-print(f'Thread num {cv2.getThreadNum()}')
-print(f'Num Threads {cv2.getNumThreads()}')
-print(f'Build Information {cv2.getBuildInformation()}')
-print("CUDA enabled devices:", cv2.cuda.getCudaEnabledDeviceCount())
+LEDCords = [[0.0, 0.0], [0.0, 0.0]]
+awayCords = [[0.0, 0.0], [0.0, 0.0]]
+
+quad_pts = np.array([LEDCords[0], LEDCords[1], awayCords[0], awayCords[1]], dtype=np.float32)# (x,y)
+rect_pts = np.array([[0, 1], [1, 1], [0, 0], [1, 0]], dtype=np.float32)
+perspective_matrix = cv2.getPerspectiveTransform(quad_pts, rect_pts)
 
 while True:
     frame = kinect.get_last_color_frame()
     frame = frame.reshape((1080, 1920, 4))
-    #frame = cv2.flip(frame, 1)
-    #gframe = cv2.UMat(frame)
-    #gframe = cv2.flip(gframe, 1)
-    #frame = gframe.get()
-
 
     # Convert BGR image to RGB for MediaPipe
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
     results = hands.process(rgb_frame)
 
     pinch = False
-    cx = 0 #These values are the position of the middle finger in the frame
+    cx = 0 #These values are the position of the index finger in the frame
     cy = 0
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:

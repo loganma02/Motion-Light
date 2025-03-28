@@ -1,21 +1,32 @@
-import cv2
-import mediapipe as mp
 import socket
 import requests
+import numpy as np
+import cv2
+import mediapipe as mp
+from numpy import integer
 
-# def is_pinching(landmarks, frame_width, frame_height, threshold=30):
-#     """ Detects if the hand is pinching by checking the distance between thumb and index finger tips """
-#     thumb_tip = landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
-#     index_tip = landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-#
-#     # Convert to pixel coordinates
-#     thumb_x, thumb_y = int(thumb_tip.x * frame_width), int(thumb_tip.y * frame_height)
-#     index_x, index_y = int(index_tip.x * frame_width), int(index_tip.y * frame_height)
-#
-#     # Calculate Euclidean distance
-#     distance = np.sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
-#
-#     return distance < threshold  # Return True if fingers are close enough
+
+def is_pinching(landmarks, mp_hands, frame_width: int, frame_height: int, threshold=0.2):
+    """ Detects if the hand is pinching by checking the distance between thumb and index finger tips """
+    thumb_tip = landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+    index_tip = landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+    wrist = landmarks.landmark[mp_hands.HandLandmark.WRIST]
+    index_base = landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP]
+
+    # Convert to pixel coordinates
+    thumb_x, thumb_y = int(thumb_tip.x * frame_width), int(thumb_tip.y * frame_height)
+    index_x, index_y = int(index_tip.x * frame_width), int(index_tip.y * frame_height)
+    wrist_x, wrist_y = int(wrist.x * frame_width), int(wrist.y * frame_height)
+    index_base_x, index_base_y = int(index_base.x * frame_width), int(index_base.y * frame_height)
+
+    # Calculate Euclidean distance
+    pinch_distance = np.sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
+    hand_size = np.sqrt((wrist_x - index_base_x) ** 2 + (wrist_y - index_base_y) ** 2)
+    normalized_distance = pinch_distance / hand_size
+
+    print(f"Pinch distance is: {normalized_distance}")
+
+    return normalized_distance < threshold  # Return True if fingers are close enough
 
 def send_wled_udp(data, WLED_IP, WLED_PORT, mode='DRGB'):
     '''
