@@ -46,6 +46,9 @@ used 3.3v and the LED strip 5v), but since the cable I used was so short I did n
 ![Motion Light Hardware](Images/Motion%20Light%20Hardware.jpg)
 *Hardware setup on breadboard*
 
+![Entire setup](Images/Motion%20Light%20Setup.jpg)
+*The entire Motion Light system setup*
+
 ## Next Steps
 
 I am quite happy with the progress so far, moving forward I hope to delve into more of the kinect sensors (such as depth) to make even better
