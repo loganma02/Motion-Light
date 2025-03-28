@@ -46,7 +46,6 @@ def send_wled_udp(data, WLED_IP, WLED_PORT, mode='DRGB'):
         raise ValueError('mode must be either DRGB or WARLS, perhaps check capitalization?')
 
     newData.extend(data)
-    print(newData)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.sendto(newData, (WLED_IP, WLED_PORT))
 
