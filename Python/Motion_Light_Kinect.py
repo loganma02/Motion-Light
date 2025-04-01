@@ -144,18 +144,12 @@ while True:
         u = np.clip(u, 0, 1)
         v = np.clip(v, 0, 1)
 
-        # Map v to brightness
-        intensity = v  # 0 (bottom) to 1 (top)
-
-        gamma = 0.2  # Typical gamma correction factor
-        intensity = v ** (1 / gamma)  # Adjust brightness perception
+        intensity = v ** (1 / GAMMA)  # Adjust brightness perception
 
         led_data = bytearray(LED_COUNT * 3)  # Initialize all LEDs to off
 
-        distance_array = np.zeros(28)
         for i in range(LED_COUNT):
             distance = abs((i / LED_COUNT) - u) * LED_COUNT
-            distance_array[i] = distance
             brightness = intensity * np.exp(- (distance ** 2) / (2 * FADE_WIDTH ** 2))
 
             # Scale RGB color
