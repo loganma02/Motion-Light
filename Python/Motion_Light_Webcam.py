@@ -135,7 +135,7 @@ while cap.isOpened():
         led_data = bytearray(LED_COUNT * 3)  # Initialize all LEDs to off
 
         for i in range(LED_COUNT):
-            distance = abs((i / LED_COUNT) - u) * LED_COUNT
+            distance = abs((i / LED_COUNT) - u) * LED_COUNT # How far this LED is from the center of the light curve
             brightness = intensity * np.exp(- (distance ** 2) / (2 * FADE_WIDTH ** 2))
 
             # Scale RGB color
