@@ -1,4 +1,7 @@
 import os
+from pickle import FRAME
+
+from absl.testing.flagsaver import restore_flag_values
 
 from Python.WLED_Discovery import discover_wled_devices
 
@@ -19,7 +22,7 @@ FRAME_HEIGHT = 1080
 #WLED_PORT = 21324
 #LED_COUNT = get_led_count(ip=WLED_IP)
 DEVICES = pd.DataFrame(columns=['name', 'ip', 'numLED'])
-print(DEVICES)
+ROLLING_AVERAGE_FRAMES = 5
 
 
 # These are the variables that are most likely to be tweaked
@@ -60,19 +63,40 @@ while True:
         frame = frame.reshape((1080, 1920, 4))
         bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
 
-
     # Display the output
     cv2.imshow('Motion Light', frame)
 
+    qrDetector = cv2.QRCodeDetector()
+    retval, dataList, pointsList, _ = qrDetector.detectAndDecodeMulti(frame)
+
+    for eachData, eachPointsList in zip(dataList, pointsList): # Go through each QR code found
+        centerX = 0
+        centerY = 0
+        for eachPoint in eachPointsList:
+            centerX += eachPoint[0]
+            centerY += eachPoint[1]
+        centerX /= len(eachPointsList)
+        centerY /= len(eachPointsList)
+        centerX = int(centerX)
+        centerY = int(centerY)
+        if eachData in DEVICES['name'].values: # Code exists in dataframe
+            rValue, gValue, bValue = position_to_rgb(centerX, FRAME_WIDTH)
+            cv2.circle(frame, (centerX, centerY), 10, (bValue, gValue, rValue), cv2.FILLED) # If found in devices make green circle, otherwise red
+        else:
+            cv2.circle(frame, (centerX, centerY), 10, (255, 255, 255), cv2.FILLED)
+
     # Break loop on 'q' key press
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        print(f"These were the LEDCords: {LEDCords}")
-        print(f"These were the awayCords: {awayCords}")
+        # print(f"These were the LEDCords: {LEDCords}")
+        # print(f"These were the awayCords: {awayCords}")
+        print("Quitting...")
         break
 
     # Listen for refresh when r is pressed
     if cv2.waitKey(1) & 0xFF == ord('r'):
+        print('Refreshing Devices...')
         DEVICES = discover_wled_devices()
+        print('Done Refreshing')
 
     if cv2.waitKey(1) & 0xFF == ord('p'):
         print(DEVICES.head())

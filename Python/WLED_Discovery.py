@@ -16,6 +16,10 @@ class WLEDListener:
             with self.lock:
                 self.devices[name] = ip
 
+    def update_service(self, zeroconf, service_type, name):
+        # Optional: implement update handling if needed
+        pass
+
 def discover_wled_devices(timeout=5):
     #devices.drop(columns=devices.columns, inplace=True)
     df = pd.DataFrame(columns=['name', 'ip', 'numLED'])

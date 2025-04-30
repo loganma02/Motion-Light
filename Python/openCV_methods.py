@@ -60,3 +60,19 @@ def get_led_count(ip):
     else:
         print("Failed to retrieve LED info.")
         return None
+
+def position_to_rgb(centerX, frame_width):
+    # Normalize x-coordinate
+    norm_x = np.clip(centerX / frame_width, 0, 1)
+
+    # Map normalized x to hue (0-179 in OpenCV)
+    hue = int(norm_x * 179)  # OpenCV hue max is 179, not 360
+
+    # Create HSV image with full saturation and value
+    hsv = np.uint8([[[hue, 255, 255]]])  # Shape: (1,1,3)
+
+    # Convert HSV to BGR
+    bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0][0]
+
+    # Return as RGB tuple
+    return int(bgr[2]), int(bgr[1]), int(bgr[0])
