@@ -7,6 +7,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from openCV_methods import *
+from pyzbar.pyzbar import decode
 import pandas as pd
 
 frame = cv2.imread('qrtest2.png')
@@ -18,6 +19,11 @@ cv2.imshow('window', frame)
 #cv2.QRCodeDetector.decodeMulti(bgr_frame, qrPoints, qrNames)
 qrDetector = cv2.QRCodeDetector()
 retval, qrNames, qrPoints, _ = qrDetector.detectAndDecodeMulti(frame)
+scannedCodes = decode(frame)
+print(scannedCodes)
+for indiv in scannedCodes:
+    print(average_of_points(*indiv.polygon))
+
 for eachCode in qrPoints:
     xAvg = 0
     yAvg = 0

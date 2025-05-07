@@ -76,3 +76,24 @@ def position_to_rgb(centerX, frame_width):
 
     # Return as RGB tuple
     return int(bgr[2]), int(bgr[1]), int(bgr[0])
+
+def average_of_points(point1, point2, point3, point4):
+    """
+    Calculates the average of four points.
+
+    Args:
+        point1: A tuple or list representing the coordinates of the first point (x, y).
+        point2: A tuple or list representing the coordinates of the second point (x, y).
+        point3: A tuple or list representing the coordinates of the third point (x, y).
+        point4: A tuple or list representing the coordinates of the fourth point (x, y).
+
+    Returns:
+        A tuple representing the integer average x and y coordinates of the four points.
+    """
+    x_coords = [point1[0], point2[0], point3[0], point4[0]]
+    y_coords = [point1[1], point2[1], point3[1], point4[1]]
+
+    average_x = sum(x_coords) / len(x_coords)
+    average_y = sum(y_coords) / len(y_coords)
+
+    return (int(average_x), int(average_y))

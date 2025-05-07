@@ -9,6 +9,7 @@ os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 import mediapipe as mp
 import numpy as np
+from pyzbar.pyzbar import decode
 from openCV_methods import *
 import pandas as pd
 
@@ -23,6 +24,8 @@ FRAME_HEIGHT = 1080
 #LED_COUNT = get_led_count(ip=WLED_IP)
 DEVICES = pd.DataFrame(columns=['name', 'ip', 'numLED'])
 ROLLING_AVERAGE_FRAMES = 5
+ENCODING = 'utf-8' #Encoding the qr codes are in
+WLED_PORT = 21324
 
 
 # These are the variables that are most likely to be tweaked
@@ -61,37 +64,37 @@ while True:
         frame = frame.reshape((1080, 1920, 4))
         bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
 
-    # # Display the output
-    # cv2.imshow('Motion Light', frame)
+    #qrDetector = cv2.QRCodeDetector()
+    #retval, dataList, pointsList, _ = qrDetector.detectAndDecodeMulti(frame)
 
-    qrDetector = cv2.QRCodeDetector()
-    retval, dataList, pointsList, _ = qrDetector.detectAndDecodeMulti(frame)
-    # if retval is not False:
-    #     print(dataList)
+    scannedCodes = decode(frame)
+    #scannedCodes = None
 
-    if dataList and pointsList is not None:
-        for eachData, eachPointsList in zip(dataList, pointsList): # Go through each QR code found
-            print(eachData, eachPointsList)
-            centerX = 0
-            centerY = 0
-            for eachPoint in eachPointsList:
-                centerX += eachPoint[0]
-                centerY += eachPoint[1]
-            centerX /= len(eachPointsList)
-            centerY /= len(eachPointsList)
-            centerX = int(centerX)
-            centerY = int(centerY)
-            if eachData in DEVICES['name'].values: # Code exists in dataframe, do the coloring process
+    if scannedCodes is not None:
+        for eachCode in scannedCodes: # Go through each QR code found
+            decodedData = eachCode.data.decode(ENCODING)
+            centerX, centerY = average_of_points(*eachCode.polygon)
+            if decodedData in DEVICES['name'].values: # Code exists in dataframe, do the coloring process
+                thisRow = DEVICES.loc[DEVICES['name'] == decodedData]
+                thisNumLed = thisRow.iloc[0]['numLED']
+                thisIP = thisRow.iloc[0]['ip']
+
                 rValue, gValue, bValue = position_to_rgb(centerX, FRAME_WIDTH)
                 cv2.circle(frame, (centerX, centerY), 10, (bValue, gValue, rValue), cv2.FILLED) # If found in devices put circle on center with transmit color
-                cv2.putText(frame, eachData, ((centerX+20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2) # Name on code with matching color
-                # colorTransmit = bytearray()
-                # for _ in arange(DEVICES.loc[DEVICES['name'] == eachData].numLED): #TODO: get acutal count from DEVICES
-                #     #do the color set
+                cv2.putText(frame, decodedData, ((centerX+20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2) # Name on code with matching color
+
+                led_data = bytearray(thisNumLed * 3)  # Initialize all LEDs to off
+
+                for i in range(thisNumLed):
+                    # Set the LED's RGB values
+                    led_data[i * 3] = rValue
+                    led_data[i * 3 + 1] = gValue
+                    led_data[i * 3 + 2] = bValue
+                send_wled_udp(led_data, thisIP, WLED_PORT, 'DRGB')
             else:
-                cv2.circle(frame, (centerX, centerY), 10, (255, 255, 255), cv2.FILLED)
-                cv2.putText(frame, eachData, ((centerX + 20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                            (255, 255, 255), 2)  # Name on code with matching color
+                cv2.circle(frame, (centerX, centerY), 10, (0, 0, 0), cv2.FILLED)
+                cv2.putText(frame, decodedData, ((centerX + 20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (0, 0, 0), 2)  # Name on code with matching color
 
     # Display the output
     cv2.imshow('Motion Light', frame)
