@@ -29,7 +29,7 @@ ROLLING_AVERAGE_FRAMES = 5
 FADE_WIDTH = 1 # Change this value to change how wide the fade is along the strips
 GAMMA = 0.2  # Change this value to change how intense the fade is when a hand approaches
 FADE_COLOR = [255,20,255] # This is the color of the fade
-VIDEO_MODE = 'infrared' # Currently support the color and infrared feeds from kinect
+VIDEO_MODE = 'color' # Currently support the color and infrared feeds from kinect
 
 #Video mode setup
 if (VIDEO_MODE == 'color'):
@@ -40,8 +40,6 @@ elif (VIDEO_MODE == 'infrared'):
     FRAME_HEIGHT = 424
 else:
     raise ValueError('Check video mode, should be color or infrared.')
-
-# Initialize MediaPipe Hands
 
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
@@ -63,27 +61,41 @@ while True:
         frame = frame.reshape((1080, 1920, 4))
         bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
 
-    # Display the output
-    cv2.imshow('Motion Light', frame)
+    # # Display the output
+    # cv2.imshow('Motion Light', frame)
 
     qrDetector = cv2.QRCodeDetector()
     retval, dataList, pointsList, _ = qrDetector.detectAndDecodeMulti(frame)
+    # if retval is not False:
+    #     print(dataList)
 
-    for eachData, eachPointsList in zip(dataList, pointsList): # Go through each QR code found
-        centerX = 0
-        centerY = 0
-        for eachPoint in eachPointsList:
-            centerX += eachPoint[0]
-            centerY += eachPoint[1]
-        centerX /= len(eachPointsList)
-        centerY /= len(eachPointsList)
-        centerX = int(centerX)
-        centerY = int(centerY)
-        if eachData in DEVICES['name'].values: # Code exists in dataframe
-            rValue, gValue, bValue = position_to_rgb(centerX, FRAME_WIDTH)
-            cv2.circle(frame, (centerX, centerY), 10, (bValue, gValue, rValue), cv2.FILLED) # If found in devices make green circle, otherwise red
-        else:
-            cv2.circle(frame, (centerX, centerY), 10, (255, 255, 255), cv2.FILLED)
+    if dataList and pointsList is not None:
+        for eachData, eachPointsList in zip(dataList, pointsList): # Go through each QR code found
+            print(eachData, eachPointsList)
+            centerX = 0
+            centerY = 0
+            for eachPoint in eachPointsList:
+                centerX += eachPoint[0]
+                centerY += eachPoint[1]
+            centerX /= len(eachPointsList)
+            centerY /= len(eachPointsList)
+            centerX = int(centerX)
+            centerY = int(centerY)
+            if eachData in DEVICES['name'].values: # Code exists in dataframe, do the coloring process
+                rValue, gValue, bValue = position_to_rgb(centerX, FRAME_WIDTH)
+                cv2.circle(frame, (centerX, centerY), 10, (bValue, gValue, rValue), cv2.FILLED) # If found in devices put circle on center with transmit color
+                cv2.putText(frame, eachData, ((centerX+20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2) # Name on code with matching color
+                # colorTransmit = bytearray()
+                # for _ in arange(DEVICES.loc[DEVICES['name'] == eachData].numLED): #TODO: get acutal count from DEVICES
+                #     #do the color set
+            else:
+                cv2.circle(frame, (centerX, centerY), 10, (255, 255, 255), cv2.FILLED)
+                cv2.putText(frame, eachData, ((centerX + 20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (255, 255, 255), 2)  # Name on code with matching color
+
+    # Display the output
+    cv2.imshow('Motion Light', frame)
+
 
     # Break loop on 'q' key press
     if cv2.waitKey(1) & 0xFF == ord('q'):
