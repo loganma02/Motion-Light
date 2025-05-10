@@ -1,3 +1,4 @@
+from pandas import DataFrame
 from zeroconf import ServiceBrowser, Zeroconf
 import threading
 import socket
@@ -22,7 +23,7 @@ class WLEDListener:
 
 def discover_wled_devices(timeout=5):
     #devices.drop(columns=devices.columns, inplace=True)
-    df = pd.DataFrame(columns=['name', 'ip', 'numLED'])
+    df = pd.DataFrame(columns=['name', 'ip', 'numLED', 'markerID'])
 
     zeroconf = Zeroconf()
     listener = WLEDListener()
@@ -43,8 +44,16 @@ def discover_wled_devices(timeout=5):
                 name = resp.json().get("name", None)
                 numLED = resp.json().get("leds", None).get("count", None)
                 if name and numLED:
-                    df.loc[len(df)] = [name, ip, numLED]
+                    df.loc[len(df)] = [name, ip, numLED, None]
         except requests.RequestException:
             continue  # Skip devices that didn't respond
 
+    return df
+
+def register_aruco_for_wled(df: DataFrame):
+    print("Beginning WLED to aruco registration")
+    for index, row in df.iterrows():
+        df.loc[index, 'markerID'] = input(f"For device {row['name']} with {row['numLED']} LEDs, enter aruco id: ")
+    print("Registered devices is now:")
+    print(df.head())
     return df

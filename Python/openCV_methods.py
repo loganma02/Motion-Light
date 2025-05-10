@@ -1,6 +1,7 @@
 import socket
 import requests
 import numpy as np
+import colorsys
 import cv2
 import mediapipe as mp
 from numpy import integer
@@ -62,20 +63,31 @@ def get_led_count(ip):
         return None
 
 def position_to_rgb(centerX, frame_width):
+    # # Normalize x-coordinate
+    # norm_x = np.clip(centerX / frame_width, 0, 1)
+    #
+    # # Map normalized x to hue (0-179 in OpenCV)
+    # hue = int(norm_x * 179)  # OpenCV hue max is 179, not 360
+    #
+    # # Create HSV image with full saturation and value
+    # hsv = np.uint8([[[hue, 255, 255]]])  # Shape: (1,1,3)
+    #
+    # # Convert HSV to BGR
+    # bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0][0]
+    #
+    # # Return as RGB tuple
+    # return int(bgr[2]), int(bgr[1]), int(bgr[0])
     # Normalize x-coordinate
     norm_x = np.clip(centerX / frame_width, 0, 1)
 
-    # Map normalized x to hue (0-179 in OpenCV)
-    hue = int(norm_x * 179)  # OpenCV hue max is 179, not 360
+    # Map to full hue range (0.0 to 1.0)
+    hue = norm_x
 
-    # Create HSV image with full saturation and value
-    hsv = np.uint8([[[hue, 255, 255]]])  # Shape: (1,1,3)
+    # Full saturation and value
+    r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
 
-    # Convert HSV to BGR
-    bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0][0]
-
-    # Return as RGB tuple
-    return int(bgr[2]), int(bgr[1]), int(bgr[0])
+    # Convert to 8-bit RGB
+    return int(r * 255), int(g * 255), int(b * 255)
 
 def average_of_points(point1, point2, point3, point4):
     """
