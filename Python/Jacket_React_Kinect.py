@@ -3,6 +3,12 @@ from pickle import FRAME
 
 from absl.testing.flagsaver import restore_flag_values
 
+class _CameraSpacePoint:
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+
 from Python.WLED_Discovery import discover_wled_devices, register_aruco_for_wled
 
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
@@ -59,26 +65,30 @@ while True:
         frame = kinect.get_last_infrared_frame()
         frame = frame.reshape((FRAME_HEIGHT, FRAME_WIDTH))
         frame = (frame / 256).astype(np.uint8)
-        bgr_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
     elif (VIDEO_MODE == 'color'):
         frame = kinect.get_last_color_frame()
         frame = frame.reshape((1080, 1920, 4))
-        bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+        frame = frame[0:FRAME_HEIGHT, 308:FRAME_WIDTH - 308]
     frame = cv2.flip(frame, 1)
     frameDepth = kinectDepth.get_last_depth_frame()
     frameDepth = frameDepth.reshape((424, 512))
+    frameDepth = cv2.flip(frameDepth, 1)
     #frameDepth = cv2.resize(frameDepth, (FRAME_HEIGHT, FRAME_WIDTH))
 
     corners, ids, rejected = detector.detectMarkers(frame)
     #print(ids)
+    depthX = 0
+    depthY = 0
     if ids is not None:
         for i, marker_id in enumerate(ids.flatten()):
             decodedData = str(marker_id)  # Use ArUco ID as the unique identifier
             corner_pts = corners[i][0]
             centerX = int(np.mean(corner_pts[:, 0]))
             centerY = int(np.mean(corner_pts[:, 1]))
-            depthX = int((centerX / FRAME_WIDTH) * 512)
+            #depthX = int((centerX / FRAME_WIDTH) * 512)
+            depthX = int((centerX / 1304) * 512)
             depthY = int((centerY / FRAME_HEIGHT) * 424)
+
             depthValue = frameDepth[depthY, depthX]
             if depthValue > 500 and depthValue < 1500:
                 intensity = abs((depthValue*(-1.0/1000.0)) + 1.5)
@@ -139,9 +149,22 @@ while True:
     #                         (0, 0, 0), 2)  # Name on code with matching color
 
     # Display the output
-    #combined = np.hstack((frame, frameDepth))
-    #normalized_depth = cv2.normalize(frameDepth, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-    cv2.imshow('Motion Light', frame)
+    frameDepth = cv2.normalize(frameDepth, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    frameDepth = cv2.cvtColor(frameDepth, cv2.COLOR_GRAY2RGBA)
+    frameDepth = cv2.circle(frameDepth, (depthX, depthY), 10, (255, 255, 255), cv2.FILLED)
+    if (VIDEO_MODE == 'color'):
+        #frameDepthCopy = cv2.copyMakeBorder(frameDepth, 0, 0, 224, 224, cv2.BORDER_CONSTANT)
+        frame = cv2.resize(frame, (512, 424))
+        print(np.shape(frame))
+        print(np.shape(frameDepth))
+        comboFrame = np.vstack((frame, frameDepth))
+    elif (VIDEO_MODE == 'infrared'):
+        comboFrame = np.vstack((frame, frameDepth))
+
+
+    #mapped = kinect.depth_frame_to_color_space(frameDepth)
+    #comboFrame = np.vstack((frame, frameDepthCopy))
+    cv2.imshow('Motion Light', comboFrame)
 
 
     # Break loop on 'q' key press

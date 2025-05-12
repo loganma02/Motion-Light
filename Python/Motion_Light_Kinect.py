@@ -20,7 +20,7 @@ LED_COUNT = get_led_count(ip=WLED_IP)
 FADE_WIDTH = 1 # Change this value to change how wide the fade is along the strips
 GAMMA = 0.2  # Change this value to change how intense the fade is when a hand approaches
 FADE_COLOR = [255,20,255] # This is the color of the fade
-VIDEO_MODE = 'infrared' # Currently support the color and infrared feeds from kinect
+VIDEO_MODE = 'color' # Currently support the color and infrared feeds from kinect
 
 if (VIDEO_MODE == 'color'):
     kinect = PyKinectRuntime.PyKinectRuntime(PyKinect2024.FrameSourceTypes_Color)
@@ -136,6 +136,11 @@ while True:
     elif (stage == 'lightStage'):
         cv2.putText(frame, f"The current middle finger coordinate is {cx}, {cy}", (20, 460), cv2.FONT_HERSHEY_COMPLEX,
                     0.3, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.line(frame, LEDCords[0], LEDCords[1], FADE_COLOR, 3, cv2.LINE_AA) # Interaction bounding box
+        cv2.line(frame, LEDCords[1], awayCords[1], FADE_COLOR, 3, cv2.LINE_AA)
+        cv2.line(frame, awayCords[1], awayCords[0], FADE_COLOR, 3, cv2.LINE_AA)
+        cv2.line(frame, awayCords[0], LEDCords[0], FADE_COLOR, 3, cv2.LINE_AA)
+
 
         point = np.array([[cx, cy]], dtype=np.float32)
         transformed = cv2.perspectiveTransform(point.reshape(-1, 1, 2), perspective_matrix)[0][0]
