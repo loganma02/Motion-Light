@@ -63,21 +63,6 @@ def get_led_count(ip):
         return None
 
 def position_to_rgb(centerX, frame_width):
-    # # Normalize x-coordinate
-    # norm_x = np.clip(centerX / frame_width, 0, 1)
-    #
-    # # Map normalized x to hue (0-179 in OpenCV)
-    # hue = int(norm_x * 179)  # OpenCV hue max is 179, not 360
-    #
-    # # Create HSV image with full saturation and value
-    # hsv = np.uint8([[[hue, 255, 255]]])  # Shape: (1,1,3)
-    #
-    # # Convert HSV to BGR
-    # bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0][0]
-    #
-    # # Return as RGB tuple
-    # return int(bgr[2]), int(bgr[1]), int(bgr[0])
-    # Normalize x-coordinate
     norm_x = np.clip(centerX / frame_width, 0, 1)
 
     # Map to full hue range (0.0 to 1.0)
@@ -109,3 +94,22 @@ def average_of_points(point1, point2, point3, point4):
     average_y = sum(y_coords) / len(y_coords)
 
     return (int(average_x), int(average_y))
+
+def depth_to_camera_space(u, v, depth, intrinsics):
+    """
+        Converts point in color space and matching depth to position in
+        camera frame, which is in meters away from the camera.
+
+        Args:
+            u: X coordinate in color frame
+            v: Y coordinate in color frame
+            depth: Depth value of u and v in millimeters (kinectV2 depth frame outputs this)
+            intrinsics: The K camera matrix of the color camera
+
+        Returns:
+            A tuple with X, Y, and Z in meters away from the camera
+        """
+    Z = depth/1000  # depth in meters
+    X = (u - intrinsics[0][2]) * Z / intrinsics[0][0]
+    Y = (v - intrinsics[1][2]) * Z / intrinsics[1][1]
+    return np.array([X, Y, Z])

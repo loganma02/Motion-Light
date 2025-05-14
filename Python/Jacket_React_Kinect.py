@@ -3,12 +3,6 @@ from pickle import FRAME
 
 from absl.testing.flagsaver import restore_flag_values
 
-class _CameraSpacePoint:
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-
 from Python.WLED_Discovery import discover_wled_devices, register_aruco_for_wled
 
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
@@ -29,6 +23,9 @@ InfraredPoints = np.float32([[221, 138], [218, 300], [86, 301], [91, 133]])
 ColorPoints = np.float32([[784, 339], [761, 814], [371, 806], [396, 313]])
 perspectiveTransform = cv2.getPerspectiveTransform(ColorPoints, InfraredPoints)
 
+COLOR_INTRINSICS = np.array([[1081.37, 0.0, 959.5],
+                             [0.0, 1081.37, 539.5],
+                             [0.0, 0.0, 1.0]])
 ROLLING_AVERAGE_FRAMES = 5
 ENCODING = 'utf-8' #Encoding the qr codes are in
 WLED_PORT = 21324
@@ -92,6 +89,7 @@ while True:
 
             point = np.array([[[centerX, centerY]]], dtype=np.float32)
             transformedPoint = cv2.perspectiveTransform(point, perspectiveTransform)[0][0]
+
             depthX = min(int(transformedPoint[0]), 511)
             depthY = min(int(transformedPoint[1]), 423)
 
@@ -100,6 +98,8 @@ while True:
                 intensity = abs((depthValue*(-1.0/1000.0)) + 1.5)
             else:
                 intensity = 1.0
+
+            cameraFramePoints = depth_to_camera_space(centerX, centerY, depthValue, COLOR_INTRINSICS)
 
             if decodedData in DEVICES['markerID'].values: # Code exists in dataframe, do the coloring process
                 thisRow = DEVICES.loc[DEVICES['markerID'] == decodedData]
@@ -110,6 +110,10 @@ while True:
                 cv2.circle(frame, (centerX, centerY), 10, (bValue, gValue, rValue), cv2.FILLED) # If found in devices put circle on center with transmit color
                 cv2.putText(frame, f"{decodedData}, int:{intensity}, depth: {depthValue}", ((centerX+20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2) # Name on code with matching color
                 cv2.putText(frame, f"R: {rValue}, G:{gValue}, B:{bValue}", ((centerX+20), (centerY+20)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2) # Name on code with matching color
+                # cv2.putText(frame, f"R: {rValue}, G:{gValue}, B:{bValue}", ((centerX + 20), (centerY + 20)),
+                #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue),
+                #             2)  # Name on code with matching color
+                cv2.putText(frame, f"X: {cameraFramePoints[0]}, Y:{cameraFramePoints[1]}, Z:{cameraFramePoints[2]}", ((centerX+20), (centerY+40)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2)
 
                 led_data = bytearray(thisNumLed * 3)  # Initialize all LEDs to off
                 for i in range(thisNumLed):
@@ -121,6 +125,9 @@ while True:
                 cv2.circle(frame, (centerX, centerY), 10, (0, 0, 0), cv2.FILLED)
                 cv2.putText(frame, f"{decodedData}, int:{intensity}, depth: {depthValue}", ((centerX + 20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             (0, 0, 0), 2)
+                cv2.putText(frame, f"X: {cameraFramePoints[0]}, Y:{cameraFramePoints[1]}, Z:{cameraFramePoints[2]}",
+                            ((centerX + 20), (centerY + 40)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0),
+                            2)
 
 
     # scannedCodes = decode(frame)
