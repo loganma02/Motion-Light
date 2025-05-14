@@ -33,6 +33,8 @@ VIDEO_MODE = 'color' # Currently support the color and infrared feeds from kinec
 DISPLAY_DEPTH = True
 FILENAME = 'DEVICES.pkl'
 LOAD = True
+ABSOLUTE_POSITION = True
+ABSOLUTE_POSITION_SCALE = 1
 
 if LOAD:
     DEVICES = pd.read_pickle(FILENAME)
@@ -106,20 +108,21 @@ while True:
                 thisNumLed = thisRow.iloc[0]['numLED']
                 thisIP = thisRow.iloc[0]['ip']
 
-                rValue, gValue, bValue = position_to_rgb(centerX, FRAME_WIDTH)
+                if ABSOLUTE_POSITION:
+                    rValue, gValue, bValue = position_to_rgb(normalize_clamped(cameraFramePoints[0], ABSOLUTE_POSITION_SCALE, FRAME_WIDTH), FRAME_WIDTH)
+                else:
+                    rValue, gValue, bValue = position_to_rgb(centerX, FRAME_WIDTH)
+
                 cv2.circle(frame, (centerX, centerY), 10, (bValue, gValue, rValue), cv2.FILLED) # If found in devices put circle on center with transmit color
                 cv2.putText(frame, f"{decodedData}, int:{intensity}, depth: {depthValue}", ((centerX+20), centerY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2) # Name on code with matching color
                 cv2.putText(frame, f"R: {rValue}, G:{gValue}, B:{bValue}", ((centerX+20), (centerY+20)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2) # Name on code with matching color
-                # cv2.putText(frame, f"R: {rValue}, G:{gValue}, B:{bValue}", ((centerX + 20), (centerY + 20)),
-                #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue),
-                #             2)  # Name on code with matching color
                 cv2.putText(frame, f"X: {cameraFramePoints[0]}, Y:{cameraFramePoints[1]}, Z:{cameraFramePoints[2]}", ((centerX+20), (centerY+40)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (bValue, gValue, rValue), 2)
 
-                led_data = bytearray(thisNumLed * 3)  # Initialize all LEDs to off
-                for i in range(thisNumLed):
-                    led_data[i * 3] = int(rValue * intensity)
-                    led_data[i * 3 + 1] = int(gValue * intensity)
-                    led_data[i * 3 + 2] = int(bValue * intensity)
+                led_data = single_color_bytearray(int(rValue * intensity), int(gValue * intensity), int(bValue * intensity), thisNumLed)  # Initialize all LEDs to off
+                # for i in range(thisNumLed):
+                #     led_data[i * 3] = int(rValue * intensity)
+                #     led_data[i * 3 + 1] = int(gValue * intensity)
+                #     led_data[i * 3 + 2] = int(bValue * intensity)
                 send_wled_udp(led_data, thisIP, WLED_PORT, 'DRGB')
             else:
                 cv2.circle(frame, (centerX, centerY), 10, (0, 0, 0), cv2.FILLED)

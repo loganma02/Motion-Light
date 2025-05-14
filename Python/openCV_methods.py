@@ -113,3 +113,31 @@ def depth_to_camera_space(u, v, depth, intrinsics):
     X = (u - intrinsics[0][2]) * Z / intrinsics[0][0]
     Y = (v - intrinsics[1][2]) * Z / intrinsics[1][1]
     return np.array([X, Y, Z])
+
+def single_color_bytearray(R, G, B, len):
+    """
+        Generates single color byte array of length len
+
+        Args:
+            R: Red color value in array
+            G: Green color value in array
+            B: Blue color value in array
+            len: Number of elements in returned array
+
+        Returns:
+            A byte array with each element set to RGB
+    """
+    if not (-1 < R, G, B < 256):
+        raise ValueError('R, G, and B must be between 0 and 255')
+
+    led_data = bytearray(len * 3)  # Initialize all LEDs to off
+    for i in range(len):
+        led_data[i * 3] = int(R)
+        led_data[i * 3 + 1] = int(G)
+        led_data[i * 3 + 2] = int(B)
+
+    return led_data
+
+def normalize_clamped(x, value_width, output_width=1):
+    half_width = value_width / 2
+    return output_width * max(0, min((x + half_width) / value_width, 1))
