@@ -1,10 +1,8 @@
-import socket
-import requests
-import numpy as np
 import colorsys
-import cv2
-import mediapipe as mp
-from numpy import integer
+import socket
+
+import numpy as np
+import requests
 
 
 def is_pinching(landmarks, mp_hands, frame_width: int, frame_height: int, threshold=0.2):

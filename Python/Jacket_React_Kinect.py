@@ -1,16 +1,11 @@
 import os
-from pickle import FRAME
 
-from absl.testing.flagsaver import restore_flag_values
-
-from Python.WLED_Discovery import discover_wled_devices, register_aruco_for_wled
+#from Python.WLED_Discovery import discover_wled_devices, register_aruco_for_wled
+import CustomMethods
 
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
-import mediapipe as mp
 import numpy as np
-from pyzbar.pyzbar import decode
-from openCV_methods import *
 import pandas as pd
 
 from pykinect2024 import PyKinectRuntime

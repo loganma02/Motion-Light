@@ -2,8 +2,8 @@ import os
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 import mediapipe as mp
-import numpy as np
-from openCV_methods import *
+# from CustomMethods import *
+import CustomMethods
 
 FRAME_WIDTH = 680 # These may need to be modified depending on your webcam resolution
 FRAME_HEIGHT = 480
@@ -11,7 +11,7 @@ NUM_PINCHES = 2
 
 WLED_IP = '10.0.0.128' # CHANGE THIS TO YOUR WLED LOCAL IP
 WLED_PORT = 21324
-LED_COUNT = get_led_count(ip=WLED_IP)
+LED_COUNT = CustomMethods.openCV_methods.get_led_count(ip=WLED_IP)
 
 # These are the variables that are most likely to be tweaked
 FADE_WIDTH = 1 # Change this value to change how wide the fade is along the strips

@@ -2,8 +2,7 @@ import os
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 import mediapipe as mp
-import numpy as np
-from openCV_methods import *
+from Python.CustomMethods.openCV_methods import *
 
 from pykinect2024 import PyKinectRuntime
 from pykinect2024 import PyKinect2024

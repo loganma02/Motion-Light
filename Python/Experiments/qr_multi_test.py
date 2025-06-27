@@ -1,7 +1,5 @@
 import os
 
-from Python.WLED_Discovery import discover_wled_devices
-
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 import cv2.aruco as aruco
@@ -12,11 +10,10 @@ aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
 parameters = aruco.DetectorParameters()
 detector = aruco.ArucoDetector(aruco_dict, parameters)
 
-import mediapipe as mp
 import numpy as np
-from openCV_methods import *
-from pyzbar.pyzbar import decode
-import pandas as pd
+import sys
+sys.path.append('../Python')
+from Python import CustomMethods
 
 frame = cv2.imread('aruco2.png')
 bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
