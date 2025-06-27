@@ -4,7 +4,7 @@
 and changes intensity as the hand gets closer.</p>
 
 [![Motion Light in use](Images/Motion%20Light%20Main.jpg)](https://youtu.be/SaaqHdl8EyQ)
-*Click the image to see it in action!*
+[*Click here to see it in action!*](https://youtu.be/SaaqHdl8EyQ)
 
 
 ## Webcam Version
